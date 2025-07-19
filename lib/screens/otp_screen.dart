@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/firebase_service.dart';
 
 class OtpScreen extends StatefulWidget {
   const OtpScreen({Key? key}) : super(key: key);
@@ -13,14 +14,92 @@ class _OtpScreenState extends State<OtpScreen> {
   final List<TextEditingController> _controllers =
       List.generate(6, (_) => TextEditingController());
   String? _errorText;
+  bool _isLoading = false;
+  String? _verificationId;
+  String? _companyName;
+  String? _ownerName;
+  String? _mobileNumber;
 
-  void _verifyOtp() {
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_verificationId == null) {
+      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      if (args != null) {
+        _verificationId = args['verificationId'];
+        _companyName = args['companyName'];
+        _ownerName = args['ownerName'];
+        _mobileNumber = args['mobileNumber'];
+      }
+    }
+  }
+
+  Future<void> _verifyOtp() async {
     String enteredOtp = _controllers.map((c) => c.text).join();
-    if (enteredOtp == '123456') {
-      Navigator.pushReplacementNamed(context, '/dashboard');
-    } else {
+    
+    if (enteredOtp.length != 6) {
       setState(() {
-        _errorText = 'Invalid OTP. Please try again.';
+        _errorText = 'Please enter a 6-digit OTP';
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorText = null;
+    });
+
+    try {
+      if (_verificationId != null) {
+        print('Verifying OTP: $enteredOtp with verification ID: ${_verificationId!.substring(0, 10)}...');
+        
+        final userCredential = await FirebaseService.verifyOTP(
+          verificationId: _verificationId!,
+          smsCode: enteredOtp,
+        );
+
+        print('OTP verification successful: ${userCredential?.user?.uid}');
+
+        // Save user data to Firestore
+        if (_companyName != null && _ownerName != null && _mobileNumber != null) {
+          print('Saving user data to Firestore...');
+          await FirebaseService.saveUserData(
+            companyName: _companyName!,
+            ownerName: _ownerName!,
+            mobileNumber: _mobileNumber!,
+          );
+          print('User data saved successfully');
+        }
+
+        // Update last login
+        await FirebaseService.updateLastLogin();
+
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/dashboard');
+        }
+      } else {
+        setState(() {
+          _errorText = 'Verification ID not found. Please try again.';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        if (e.toString().contains('BILLING_NOT_ENABLED')) {
+          _errorText = 'Firebase Phone Authentication billing is not enabled. Please enable it in Firebase Console.';
+        } else if (e.toString().contains('Invalid OTP')) {
+          _errorText = 'Invalid OTP code. Please check and try again.';
+        } else {
+          _errorText = 'OTP verification failed. Please try again.';
+        }
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
       });
     }
   }
@@ -109,7 +188,7 @@ class _OtpScreenState extends State<OtpScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _verifyOtp,
+                  onPressed: _isLoading ? null : _verifyOtp,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryColor,
                     padding: const EdgeInsets.symmetric(vertical: 14),
@@ -117,10 +196,19 @@ class _OtpScreenState extends State<OtpScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
-                    'Verify OTP',
-                    style: TextStyle(fontSize: 16, color: Colors.white),
-                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          'Verify OTP',
+                          style: TextStyle(fontSize: 16, color: Colors.white),
+                        ),
                 ),
               ),
               const SizedBox(height: 25),

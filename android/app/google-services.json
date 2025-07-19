@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "323932321376",
+    "project_id": "parthmetal-d4c8a",
+    "storage_bucket": "parthmetal-d4c8a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:323932321376:android:e75d3a3d4b63689adff505",
+        "android_client_info": {
+          "package_name": "com.example.parthmetal"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDvfvRQkfrnqtc9_-B4dOpznAge37feyJo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

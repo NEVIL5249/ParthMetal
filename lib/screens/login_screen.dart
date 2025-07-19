@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/firebase_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -12,6 +13,60 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _companyController = TextEditingController();
   final TextEditingController _ownerController = TextEditingController();
   final TextEditingController _mobileController = TextEditingController();
+  
+  bool _isLoading = false;
+  String? _verificationId;
+
+  Future<void> _handleContinue() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      await FirebaseService.signInWithPhoneNumber(
+        phoneNumber: _mobileController.text,
+        onCodeSent: (String verificationId) {
+          setState(() {
+            _verificationId = verificationId;
+            _isLoading = false;
+          });
+          Navigator.pushNamed(
+            context,
+            '/otp',
+            arguments: {
+              'verificationId': verificationId,
+              'companyName': _companyController.text,
+              'ownerName': _ownerController.text,
+              'mobileNumber': _mobileController.text,
+            },
+          );
+        },
+        onError: (String error) {
+          setState(() {
+            _isLoading = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(error),
+              backgroundColor: Colors.red,
+            ),
+          );
+        },
+      );
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -118,15 +173,20 @@ class _LoginScreenState extends State<LoginScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    onPressed: () {
-                      if (_formKey.currentState!.validate()) {
-                        Navigator.pushNamed(context, '/otp');
-                      }
-                    },
-                    child: const Text(
-                      'Continue',
-                      style: TextStyle(fontSize: 16, color: Colors.white),
-                    ),
+                    onPressed: _isLoading ? null : _handleContinue,
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text(
+                            'Continue',
+                            style: TextStyle(fontSize: 16, color: Colors.white),
+                          ),
                   ),
                 ),
               ],
