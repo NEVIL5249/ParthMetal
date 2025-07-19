@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # parthmetal
 
 A new Flutter project.
@@ -14,3 +15,6 @@ A few resources to get you started if this is your first Flutter project:
 For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
+=======
+# PartMetalCorp
+>>>>>>> 21e119f9061b243f30f07a03dbd42865835f0959
